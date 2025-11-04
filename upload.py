@@ -1,7 +1,7 @@
 import os
 import logging
 from werkzeug.utils import secure_filename
-from resume import parse_resume  # Ensure this function exists
+from resume import process_resume  # Ensure this function exists
 from database import insert_resume  # Use the reusable function from database.py
 from flask import request, flash, redirect, url_for, render_template, current_app
 
@@ -37,7 +37,7 @@ def handle_upload():
 
     # Extract data from the resume
     try:
-        extracted_data = parse_resume(filepath)
+        extracted_data = process_resume(filepath)
         if not extracted_data:
             flash("Failed to parse the resume. Please check the file format.", "error")
             return redirect(url_for('upload_form'))

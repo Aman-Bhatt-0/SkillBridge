@@ -27,27 +27,24 @@ def initialize_database():
     ''')
     conn.commit()
     conn.close()
-
 def insert_resume(data):
-
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
 
     print("DEBUG: Data to insert ->", data)  # 🛠️ Print extracted data before inserting
 
-    # ✅ Extract correct fields from `data` dictionary
-    email = data.get('contact_details', {}).get('Email', '')  # ✅ Fixed
-    phone = data.get('contact_details', {}).get('Mobile Number', '')  # ✅ Fixed
-    linkedin = data.get('social_links', {}).get('Linkedin', '')  # ✅ Fixed
-    github = data.get('social_links', {}).get('Github', '')  # ✅ Fixed
+    # ✅ Use correct dictionary keys
+    email = data.get('contact_info', {}).get('Email', '')
+    phone = data.get('contact_info', {}).get('Mobile Number', '')
+    linkedin = data.get('links', {}).get('Linkedin', '')
+    github = data.get('links', {}).get('Github', '')
 
-    # ✅ Convert lists to comma-separated strings
-    degree = ', '.join(data.get('degree', []))
-    programming_languages = ', '.join(data.get('keywords', {}).get('Programming Languages', []))
-    ml_tools = ', '.join(data.get('keywords', {}).get('Machine Learning Tools', []))
-    dev_tools = ', '.join(data.get('keywords', {}).get('Development Tools', []))
-    courseworks = ', '.join(data.get('keywords', {}).get('Courseworks', []))
-    soft_skills = ', '.join(data.get('keywords', {}).get('Soft Skills', []))
+    # ✅ Extract skills properly
+    programming_languages = ', '.join(data.get('skills', {}).get('programming_languages', []))
+    ml_tools = ', '.join(data.get('skills', {}).get('ml_tools', []))
+    dev_tools = ', '.join(data.get('skills', {}).get('dev_tools', []))
+    courseworks = ', '.join(data.get('skills', {}).get('courseworks', []))
+    soft_skills = ', '.join(data.get('skills', {}).get('soft_skills', []))
 
     cursor.execute('''
         INSERT INTO resumes (email, name, phone, linkedin, github, degree, 
@@ -65,21 +62,13 @@ def insert_resume(data):
             courseworks = excluded.courseworks,
             soft_skills = excluded.soft_skills
     ''', (
-        email,
-        data.get('name', ''),
-        phone,
-        linkedin,
-        github,
-        degree,
-        programming_languages,
-        ml_tools,
-        dev_tools,
-        courseworks,
-        soft_skills
+        email, data.get('name', ''), phone, linkedin, github, data.get('degree', ''),
+        programming_languages, ml_tools, dev_tools, courseworks, soft_skills
     ))
 
     conn.commit()
     print("DEBUG: Data inserted successfully ✅")  # 🛠️ Confirm data insertion
+    conn.close()
 
     conn.close()
 

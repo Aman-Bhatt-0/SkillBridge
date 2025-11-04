@@ -5,7 +5,8 @@ from job_matching import match_resumes
 import sqlite3
 
 app = Flask(__name__)
-app.secret_key = '123'
+app.secret_key = '123'  # Replace with a strong random key
+
 @app.route('/')
 def home():
     return render_template('home.html')
@@ -22,8 +23,8 @@ def match_page():
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_form():
     if request.method == 'POST':
-        return handle_upload() 
-    return render_template('upload.html') 
+        return handle_upload()  # Call function to process upload
+    return render_template('upload.html')  # Show upload form
 
 
 @app.route('/resumes', methods=['GET'])
@@ -34,7 +35,9 @@ def fetch_all_resumes():
     cursor.execute("SELECT * FROM resumes")
     rows = cursor.fetchall()
 
-    print("Fetched from DB:", rows)  
+    print("Fetched from DB:", rows)  # Debugging Line
+
+    # Convert from array of arrays to array of objects
     resumes = [
         {
             "id": row[0],
@@ -66,7 +69,8 @@ def fetch_resume_by_email():
     cursor.execute("SELECT * FROM resumes WHERE email=?", (email,))
     row = cursor.fetchone()
 
-    print("Fetched Resume:", row) 
+    print("Fetched Resume:", row)  # DEBUGGING LINE
+
     if row:
         resume = {
             "id": row[0],
