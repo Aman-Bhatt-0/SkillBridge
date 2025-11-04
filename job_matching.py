@@ -1,30 +1,56 @@
-import nltk
-from nltk.corpus import stopwords
+from transformers import AutoTokenizer, AutoModel
+from sklearn.metrics.pairwise import cosine_similarity
+import torch
+import re
+from nltk.tokenize import word_tokenize
 
+# Load SciBERT Model & Tokenizer
+tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_uncased")
+model = AutoModel.from_pretrained("allenai/scibert_scivocab_uncased")
 
 def preprocess_text(text):
-    stop_words = set(stopwords.words('english'))
-    words = nltk.word_tokenize(text.lower())
-    return ' '.join([word for word in words if word.isalnum() or '-' in word and word not in stop_words])
+    """Lowercase, remove special characters, and tokenize"""
+    text = re.sub(r"[^a-zA-Z0-9\s]", "", text.lower())
+    return " ".join(word_tokenize(text))
 
+def extract_preferred_skills(job_description):
+    """Extract preferred skills from job description"""
+    match = re.search(r"preferred skills?: (.+)", job_description, re.IGNORECASE)
+    if match:
+        return [skill.strip().lower() for skill in match.group(1).split(",")]
+    return []
+
+def vectorize_text(text):
+    """Convert text into SciBERT embeddings"""
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+    outputs = model(**inputs)
+    return outputs.last_hidden_state.mean(dim=1).detach().numpy() 
 
 def match_resumes(job_description, resumes):
-    job_skills = set(preprocess_text(job_description).split())  # Convert job description to set of words
+    """Match resumes using SciBERT & Cosine Similarity with Preferred Skills Boost"""
+    job_text = preprocess_text(job_description)
+    preferred_skills = extract_preferred_skills(job_description)
+
+    job_vector = vectorize_text(job_text)
 
     matched_resumes = []
     for resume in resumes:
-        # Use dictionary keys instead of numeric indexes
-        resume_skills = set(preprocess_text(
-            f"{resume['programming_languages']} {resume['ml_tools']} {resume['dev_tools']} {resume['courseworks']} {resume['soft_skills']}").split())
+        resume_text = preprocess_text(
+            f"{resume.get('programming_languages', '')} {resume.get('ml_tools', '')} {resume.get('dev_tools', '')} {resume.get('courseworks', '')} {resume.get('soft_skills', '')}"
+        )
+        resume_vector = vectorize_text(resume_text)
 
-        common_skills = job_skills.intersection(resume_skills)  # Find common skills
+        score = cosine_similarity(job_vector, resume_vector)[0][0] * 100
 
-        match_score = (len(common_skills) / len(job_skills)) * 100 if job_skills else 0
+        resume_skills = set(word_tokenize(resume_text))
+        preferred_bonus = sum(1 for skill in preferred_skills if skill in resume_skills) * 10
+
+        final_score = min(score + preferred_bonus, 100) 
 
         matched_resumes.append({
-            "name": resume['name'],
-            "email": resume['email'],
-            "match_score": round(match_score, 2)
+            "name": resume["name"],
+            "email": resume["email"],
+            "match_score": round(final_score, 2)
         })
 
     return sorted(matched_resumes, key=lambda x: x["match_score"], reverse=True)
